@@ -19,8 +19,8 @@ WHERE p.id = ?
 AND strftime('%Y-%m', te.startTime) = strftime('%Y-%m', 'now')
 `
 
-func (q *Queries) AggregateMonthHours(ctx context.Context, id int64) (float64, error) {
-	row := q.db.QueryRowContext(ctx, aggregateMonthHours, id)
+func (q *Queries) AggregateMonthHours(ctx context.Context, db DBTX, id int64) (float64, error) {
+	row := db.QueryRowContext(ctx, aggregateMonthHours, id)
 	var totaltrackedminscurrentmonth float64
 	err := row.Scan(&totaltrackedminscurrentmonth)
 	return totaltrackedminscurrentmonth, err
@@ -35,8 +35,8 @@ WHERE p.id = ?
 AND strftime('%Y-%W', te.startTime) = strftime('%Y-%W', 'now')
 `
 
-func (q *Queries) AggregateWeekHours(ctx context.Context, id int64) (float64, error) {
-	row := q.db.QueryRowContext(ctx, aggregateWeekHours, id)
+func (q *Queries) AggregateWeekHours(ctx context.Context, db DBTX, id int64) (float64, error) {
+	row := db.QueryRowContext(ctx, aggregateWeekHours, id)
 	var totaltrackedminscurrentweek float64
 	err := row.Scan(&totaltrackedminscurrentweek)
 	return totaltrackedminscurrentweek, err
@@ -51,8 +51,8 @@ WHERE p.id = ?
 AND strftime('%Y', te.startTime) = strftime('%Y', 'now')
 `
 
-func (q *Queries) AggregateYearHours(ctx context.Context, id int64) (float64, error) {
-	row := q.db.QueryRowContext(ctx, aggregateYearHours, id)
+func (q *Queries) AggregateYearHours(ctx context.Context, db DBTX, id int64) (float64, error) {
+	row := db.QueryRowContext(ctx, aggregateYearHours, id)
 	var totaltrackedminscurrentyear float64
 	err := row.Scan(&totaltrackedminscurrentyear)
 	return totaltrackedminscurrentyear, err
@@ -77,8 +77,8 @@ type GetDailyTotalMinutesRow struct {
 	TotalMinutes sql.NullFloat64 `json:"total_minutes"`
 }
 
-func (q *Queries) GetDailyTotalMinutes(ctx context.Context) ([]GetDailyTotalMinutesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDailyTotalMinutes)
+func (q *Queries) GetDailyTotalMinutes(ctx context.Context, db DBTX) ([]GetDailyTotalMinutesRow, error) {
+	rows, err := db.QueryContext(ctx, getDailyTotalMinutes)
 	if err != nil {
 		return nil, err
 	}

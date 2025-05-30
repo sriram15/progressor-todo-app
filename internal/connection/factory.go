@@ -4,14 +4,15 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-
-	"github.com/sriram15/progressor-todo-app/internal/database"
 )
 
 // DATABASE_NAME is the default name for the SQLite database file.
 const DATABASE_NAME = "progressor.db"
 
-var connector DBConnector
+var (
+	connector DBConnector
+	db        *sql.DB
+)
 
 // OpenDB determines the database type from environment variables,
 // creates the appropriate connector, connects, and applies migrations.
@@ -29,32 +30,35 @@ func OpenDB() (*sql.DB, error) {
 		return nil, fmt.Errorf("unsupported DB_TYPE: %s. Supported types are 'sqlite' or 'turso'", dbType)
 	}
 
-	db, actualDBType, err := connector.Connect()
+	connectedDB, actualDBType, err := connector.Connect()
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database (%s): %w", dbType, err)
 	}
 
 	fmt.Printf("Successfully established database connection (Type: %s).\n", actualDBType)
 
-	if err := connector.Migrate(db, actualDBType); err != nil {
+	if err := connector.Migrate(connectedDB, actualDBType); err != nil {
 		// It's important to close the DB if migration fails to prevent leaks.
-		db.Close()
+		connectedDB.Close()
 		return nil, fmt.Errorf("failed to apply migrations for %s: %w", actualDBType, err)
 	}
+
+	db = connectedDB
 
 	fmt.Println("Database ready.")
 	return db, nil
 }
 
-func GetDBQuery() (*database.Queries, error) {
-
-	db, err := OpenDB()
-	if err != nil {
-		return nil, err
+// GetOrReconnectDB checks if the current db connection is alive, and if not, reopens it.
+func GetOrReconnectDB() (*sql.DB, error) {
+	if db != nil {
+		if err := db.Ping(); err == nil {
+			return db, nil
+		}
+		fmt.Println("DB connection lost, attempting to reconnect...")
 	}
-
-	queries := database.New(db)
-	return queries, nil
+	// (Re)open the DB connection
+	return OpenDB()
 }
 
 func GetDBInfo() (string, string) {

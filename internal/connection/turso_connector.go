@@ -4,11 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"strings"
+	"path/filepath"
 
-	// Turso driver (libsql)
 	"github.com/pressly/goose/v3"
-	_ "github.com/tursodatabase/go-libsql"
+	libsql "github.com/tursodatabase/go-libsql"
 )
 
 // TursoConnector implements the DBConnector interface for Turso.
@@ -21,29 +20,48 @@ func NewTursoConnector() DBConnector {
 	return &TursoConnector{}
 }
 
-// Connect establishes a connection to the Turso database.
+// Connect establishes a connection to the Turso database in embedded replica mode only.
 func (tc *TursoConnector) Connect() (*sql.DB, string, error) {
-	tursoURL := os.Getenv("TURSO_DB_URL")
-	if tursoURL == "" {
-		return nil, DBTypeTurso, fmt.Errorf("TURSO_DB_URL is not set in the environment or .env file")
+	tursoDbPath := os.Getenv("TURSO_DB_PATH")
+	authToken := os.Getenv("TURSO_AUTH_TOKEN")
+	// _ := os.Getenv("TURSO_ENCRYPTION_KEY")
+	dbReplicaName := "progressor-replica.db"
+
+	if tursoDbPath == "" || authToken == "" {
+		return nil, DBTypeTurso, fmt.Errorf("TURSO_DB_PATH, TURSO_AUTH_TOKEN must be set in the environment or .env file for embedded replica mode")
 	}
 
-	db, err := sql.Open("libsql", tursoURL)
+	dir, err := os.MkdirTemp("", "libsql-*")
 	if err != nil {
-		return nil, DBTypeTurso, fmt.Errorf("sql: failed to open Turso DB: %w", err)
+		fmt.Println("Error creating temporary directory:", err)
+		os.Exit(1)
 	}
+	defer os.RemoveAll(dir)
 
-	loggableURL := tursoURL
-	if strings.Contains(loggableURL, "authToken=") {
-		loggableURL = strings.Split(loggableURL, "authToken=")[0] + "authToken=****"
-	}
-	tc.loggableURL = loggableURL
+	dbPath := filepath.Join(dir, dbReplicaName)
 
-	if err = db.Ping(); err != nil {
-		db.Close()
-		return nil, DBTypeTurso, fmt.Errorf("sql: failed to ping TursoDB. Check URL (%s). Original error: %w", loggableURL, err)
+	fmt.Println("Created a local temp replica")
+
+	connector, err := libsql.NewEmbeddedReplicaConnector(dbPath, tursoDbPath,
+		libsql.WithAuthToken(authToken),
+		// libsql.WithEncryption(encryptionKey),
+	)
+	if err != nil {
+		fmt.Println("Error creating connector:", err)
+		return nil, DBTypeTurso, err
 	}
-	return db, DBTypeTurso, nil
+	defer connector.Close()
+
+	tc.loggableURL = ""
+
+	tursoDb := sql.OpenDB(connector)
+
+	if err := tursoDb.Ping(); err != nil {
+		return nil, DBTypeTurso, err
+	}
+	// defer tursoDb.Close()
+
+	return tursoDb, DBTypeTurso, nil
 }
 
 // Migrate applies database migrations for Turso.

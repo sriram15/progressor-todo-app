@@ -17,24 +17,12 @@ func NewSettingService() *SettingService {
 }
 
 func (s *SettingService) GetAllSettings() (interface{}, error) {
-
 	dbType, dbPath := connection.GetDBInfo()
 	settings := []interface{}{
 		map[string]string{"key": "dbType", "value": dbType, "display": "Database Type"},
 		map[string]string{"key": "dbPath", "value": dbPath, "display": "Database Path"},
 		map[string]string{"key": "shortcut_open", "value": "Ctrl + Shift + P", "display": "Shortcut - Open App"},
 	}
-
-	db, err := connection.OpenDB()
-	if err != nil {
-		return nil, err
-	}
-
-	cards, err := db.Query("SELECT * FROM Cards")
-	if err != nil {
-		return settings, err
-	}
-	defer cards.Close()
 
 	return settings, nil
 }

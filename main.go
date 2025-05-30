@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/sriram15/progressor-todo-app/internal/connection"
+	"github.com/sriram15/progressor-todo-app/internal/database"
 	"github.com/sriram15/progressor-todo-app/internal/service"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -35,10 +36,12 @@ func main() {
 	}
 	// defer db.Close()
 
+	queries := database.New()
+
 	projectService := service.NewProjectService()
-	taskCompletionService := service.NewTaskCompletionService()
-	cardService := service.NewCardService(projectService, taskCompletionService)
-	progressService := service.NewProgressService(taskCompletionService)
+	taskCompletionService := service.NewTaskCompletionService(queries)
+	cardService := service.NewCardService(projectService, taskCompletionService, queries)
+	progressService := service.NewProgressService(taskCompletionService, queries)
 	settingsService := service.NewSettingService()
 	// shortcuts := internal.NewShortcut()
 

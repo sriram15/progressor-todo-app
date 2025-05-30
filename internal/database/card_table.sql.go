@@ -23,8 +23,8 @@ type CreateCardParams struct {
 	Estimatedmins int64          `json:"estimatedmins"`
 }
 
-func (q *Queries) CreateCard(ctx context.Context, arg CreateCardParams) error {
-	_, err := q.db.ExecContext(ctx, createCard,
+func (q *Queries) CreateCard(ctx context.Context, db DBTX, arg CreateCardParams) error {
+	_, err := db.ExecContext(ctx, createCard,
 		arg.Title,
 		arg.Description,
 		arg.Status,
@@ -46,8 +46,8 @@ type CreateTimeEntryParams struct {
 	Endtime   time.Time `json:"endtime"`
 }
 
-func (q *Queries) CreateTimeEntry(ctx context.Context, arg CreateTimeEntryParams) (TimeEntry, error) {
-	row := q.db.QueryRowContext(ctx, createTimeEntry, arg.Cardid, arg.Starttime, arg.Endtime)
+func (q *Queries) CreateTimeEntry(ctx context.Context, db DBTX, arg CreateTimeEntryParams) (TimeEntry, error) {
+	row := db.QueryRowContext(ctx, createTimeEntry, arg.Cardid, arg.Starttime, arg.Endtime)
 	var i TimeEntry
 	err := row.Scan(
 		&i.ID,
@@ -68,8 +68,8 @@ type DeleteCardParams struct {
 	ID        int64 `json:"id"`
 }
 
-func (q *Queries) DeleteCard(ctx context.Context, arg DeleteCardParams) error {
-	_, err := q.db.ExecContext(ctx, deleteCard, arg.Projectid, arg.ID)
+func (q *Queries) DeleteCard(ctx context.Context, db DBTX, arg DeleteCardParams) error {
+	_, err := db.ExecContext(ctx, deleteCard, arg.Projectid, arg.ID)
 	return err
 }
 
@@ -84,8 +84,8 @@ type GetActiveCardRow struct {
 	Projectid int64  `json:"projectid"`
 }
 
-func (q *Queries) GetActiveCard(ctx context.Context) (GetActiveCardRow, error) {
-	row := q.db.QueryRowContext(ctx, getActiveCard)
+func (q *Queries) GetActiveCard(ctx context.Context, db DBTX) (GetActiveCardRow, error) {
+	row := db.QueryRowContext(ctx, getActiveCard)
 	var i GetActiveCardRow
 	err := row.Scan(
 		&i.ID,
@@ -100,8 +100,8 @@ const getActiveTimeEntry = `-- name: GetActiveTimeEntry :one
  SELECT id, cardid, starttime, endtime, duration FROM TimeEntries WHERE cardId = ? AND startTime == endTime
 `
 
-func (q *Queries) GetActiveTimeEntry(ctx context.Context, cardid int64) (TimeEntry, error) {
-	row := q.db.QueryRowContext(ctx, getActiveTimeEntry, cardid)
+func (q *Queries) GetActiveTimeEntry(ctx context.Context, db DBTX, cardid int64) (TimeEntry, error) {
+	row := db.QueryRowContext(ctx, getActiveTimeEntry, cardid)
 	var i TimeEntry
 	err := row.Scan(
 		&i.ID,
@@ -157,8 +157,8 @@ type GetCardRow struct {
 	Endtime       sql.NullTime   `json:"endtime"`
 }
 
-func (q *Queries) GetCard(ctx context.Context, arg GetCardParams) (GetCardRow, error) {
-	row := q.db.QueryRowContext(ctx, getCard, arg.ID, arg.Projectid)
+func (q *Queries) GetCard(ctx context.Context, db DBTX, arg GetCardParams) (GetCardRow, error) {
+	row := db.QueryRowContext(ctx, getCard, arg.ID, arg.Projectid)
 	var i GetCardRow
 	err := row.Scan(
 		&i.CardID,
@@ -202,8 +202,8 @@ type ListCardsRow struct {
 	CardID        int64          `json:"card_id"`
 }
 
-func (q *Queries) ListCards(ctx context.Context, arg ListCardsParams) ([]ListCardsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listCards, arg.Projectid, arg.Status)
+func (q *Queries) ListCards(ctx context.Context, db DBTX, arg ListCardsParams) ([]ListCardsRow, error) {
+	rows, err := db.QueryContext(ctx, listCards, arg.Projectid, arg.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -248,8 +248,8 @@ type UpdateActiveTimeEntryParams struct {
 	ID       int64     `json:"id"`
 }
 
-func (q *Queries) UpdateActiveTimeEntry(ctx context.Context, arg UpdateActiveTimeEntryParams) error {
-	_, err := q.db.ExecContext(ctx, updateActiveTimeEntry, arg.Endtime, arg.Duration, arg.ID)
+func (q *Queries) UpdateActiveTimeEntry(ctx context.Context, db DBTX, arg UpdateActiveTimeEntryParams) error {
+	_, err := db.ExecContext(ctx, updateActiveTimeEntry, arg.Endtime, arg.Duration, arg.ID)
 	return err
 }
 
@@ -267,8 +267,8 @@ type UpdateCardParams struct {
 	ID            int64          `json:"id"`
 }
 
-func (q *Queries) UpdateCard(ctx context.Context, arg UpdateCardParams) error {
-	_, err := q.db.ExecContext(ctx, updateCard,
+func (q *Queries) UpdateCard(ctx context.Context, db DBTX, arg UpdateCardParams) error {
+	_, err := db.ExecContext(ctx, updateCard,
 		arg.Title,
 		arg.Description,
 		arg.Status,
@@ -290,7 +290,7 @@ type UpdateCardActiveParams struct {
 	ID          int64 `json:"id"`
 }
 
-func (q *Queries) UpdateCardActive(ctx context.Context, arg UpdateCardActiveParams) error {
-	_, err := q.db.ExecContext(ctx, updateCardActive, arg.Isactive, arg.Trackedmins, arg.ID)
+func (q *Queries) UpdateCardActive(ctx context.Context, db DBTX, arg UpdateCardActiveParams) error {
+	_, err := db.ExecContext(ctx, updateCardActive, arg.Isactive, arg.Trackedmins, arg.ID)
 	return err
 }

@@ -31,8 +31,8 @@ type CreateTaskCompletionParams struct {
 	Totalexp       int64 `json:"totalexp"`
 }
 
-func (q *Queries) CreateTaskCompletion(ctx context.Context, arg CreateTaskCompletionParams) (TaskCompletion, error) {
-	row := q.db.QueryRowContext(ctx, createTaskCompletion,
+func (q *Queries) CreateTaskCompletion(ctx context.Context, db DBTX, arg CreateTaskCompletionParams) (TaskCompletion, error) {
+	row := db.QueryRowContext(ctx, createTaskCompletion,
 		arg.Cardid,
 		arg.Userid,
 		arg.Baseexp,
@@ -64,8 +64,8 @@ type GetTaskCompletionParams struct {
 	Userid int64 `json:"userid"`
 }
 
-func (q *Queries) GetTaskCompletion(ctx context.Context, arg GetTaskCompletionParams) (TaskCompletion, error) {
-	row := q.db.QueryRowContext(ctx, getTaskCompletion, arg.Cardid, arg.Userid)
+func (q *Queries) GetTaskCompletion(ctx context.Context, db DBTX, arg GetTaskCompletionParams) (TaskCompletion, error) {
+	row := db.QueryRowContext(ctx, getTaskCompletion, arg.Cardid, arg.Userid)
 	var i TaskCompletion
 	err := row.Scan(
 		&i.ID,
@@ -86,8 +86,8 @@ WHERE userId = ?
 ORDER BY completionTime DESC
 `
 
-func (q *Queries) ListTaskCompletionsByUser(ctx context.Context, userid int64) ([]TaskCompletion, error) {
-	rows, err := q.db.QueryContext(ctx, listTaskCompletionsByUser, userid)
+func (q *Queries) ListTaskCompletionsByUser(ctx context.Context, db DBTX, userid int64) ([]TaskCompletion, error) {
+	rows, err := db.QueryContext(ctx, listTaskCompletionsByUser, userid)
 	if err != nil {
 		return nil, err
 	}
@@ -122,8 +122,8 @@ const totalUserExp = `-- name: TotalUserExp :one
 SELECT CAST(IFNULL(SUM(totalExp), 0) AS FLOAT) as total_exp FROM TaskCompletions WHERE userId = ?
 `
 
-func (q *Queries) TotalUserExp(ctx context.Context, userid int64) (float64, error) {
-	row := q.db.QueryRowContext(ctx, totalUserExp, userid)
+func (q *Queries) TotalUserExp(ctx context.Context, db DBTX, userid int64) (float64, error) {
+	row := db.QueryRowContext(ctx, totalUserExp, userid)
 	var total_exp float64
 	err := row.Scan(&total_exp)
 	return total_exp, err
